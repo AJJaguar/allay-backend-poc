@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Starting database seeding...');
+
 
   // Create a sample organization
   const organization = await prisma.organization.create({
@@ -23,7 +23,7 @@ async function main() {
     },
   });
 
-  console.log('Created organization:', organization.name);
+
 
   // Create master admin user
   const hashedPassword = await bcrypt.hash('admin123', 10);
@@ -41,9 +41,6 @@ async function main() {
     },
   });
 
-  console.log('Created master admin user:', adminUser.username);
-  console.log('Password: admin123');
-  console.log('Phone (for OTP): +2348012345678');
 
   // Create sample members
   const member1 = await prisma.member.create({
@@ -77,8 +74,6 @@ async function main() {
     },
   });
 
-  console.log('Created sample members');
-
   // Create sample assets
   await prisma.asset.create({
     data: {
@@ -107,14 +102,6 @@ async function main() {
       organizationId: organization.id,
     },
   });
-
-  console.log('Created sample assets');
-
-  console.log('\n✅ Database seeding completed!');
-  console.log('\nLogin credentials:');
-  console.log('Username: admin');
-  console.log('Password: admin123');
-  console.log('Subdomain: demo\n');
 }
 
 main()

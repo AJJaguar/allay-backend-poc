@@ -98,10 +98,6 @@ export const sendOTP = async (
 
   // DEVELOPMENT: Log to console
   if (process.env.NODE_ENV === 'development') {
-    console.log('\n📱 SMS Simulation:');
-    console.log(`To: ${phoneNumber}`);
-    console.log(`Message: ${message}`);
-    console.log('');
     return;
   }
 

@@ -53,8 +53,6 @@ async function startServer() {
   await new Promise<void>((resolve) =>
     httpServer.listen({ port: PORT }, resolve)
   );
-
-  console.log(`🚀 Server ready at http://localhost:${PORT}/graphql`);
 }
 
 startServer().catch(console.error);
