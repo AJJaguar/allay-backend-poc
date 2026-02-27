@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id                String    @id @default(uuid())
+  name              String
+  organizationType  String    // VOTORA, KAROTA, Other
+  cacNumber         String?   @unique
+  primaryContactName String
+  primaryContactPhone String
+  primaryContactEmail String?
+  address           String
+  lga               String
+  state             String
+  subdomain         String    @unique
+  status            String    @default("Active") // Active, Inactive
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  users             User[]
+  members           Member[]
+  assets            Asset[]
+  auditLogs         AuditLog[]
+}
+
+model User {
+  id             String       @id @default(uuid())
+  username       String       @unique
+  email          String?      @unique
+  password       String       // bcrypt hashed
+  role           String       @default("Admin") // MasterAdmin, Admin, Operator
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  lastLogin      DateTime?
+  isActive       Boolean      @default(true)
+  phoneNumber    String?      // For OTP
+  otpEnabled     Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  
+  auditLogs      AuditLog[]
+  passwordHistory PasswordHistory[]
+  otpTokens      OTPToken[]
+  
+  @@index([organizationId])
+  @@index([phoneNumber])
+}
+
+model PasswordHistory {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  password  String   // bcrypt hashed
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+}
+
+model OTPToken {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phoneNumber String // For password reset without userId
+  token     String   // 6-digit OTP
+  type      String   // LOGIN, RESET_PASSWORD
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([phoneNumber])
+  @@index([token])
+}
+
+model Member {
+  id                String       @id @default(uuid())
+  memberId          String       @unique // Auto-generated member ID
+  
+  // Personal Information (encrypted fields marked)
+  surname           String
+  firstName         String
+  middleName        String?
+  dateOfBirth       DateTime?
+  gender            String?
+  nin               String       // Encrypted - 11 digits
+  phoneNumber       String       // Encrypted
+  altPhoneNumber    String?      // Encrypted
+  email             String?
+  address           String?
+  lga               String       // Required - operational LGA
+  state             String?
+  
+  // Next of Kin
+  nokName           String?
+  nokPhone          String?      // Encrypted
+  nokRelationship   String?
+  
+  // Membership Details
+  votoraNumber      String?
+  operationalLga    String?
+  membershipStatus  String       @default("Active") // Active, Suspended, Inactive
+  dateJoined        DateTime     @default(now())
+  roleInSystem      String       @default("Member") // Admin, Operator, Member
+  
+  // Photo
+  photoUrl          String?
+  
+  // Relationships
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assets            Asset[]
+  
+  // Meta
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  createdBy         String?
+  
+  @@index([organizationId])
+  @@index([phoneNumber])
+  @@index([nin])
+}
+
+model Asset {
+  id                String       @id @default(uuid())
+  assetId           String       @unique // Auto-generated
+  
+  // Identity
+  karotaNumber      String       @unique // Required
+  plateNumber       String?
+  vehicleType       String       // Keke, Tricycle, Motorcycle - Required
+  color             String?
+  
+  // Vehicle Details
+  chassisNumber     String?
+  engineNumber      String?
+  acquisitionDate   DateTime?
+  
+  // Ownership
+  ownerId           String       // Required - linked to Member
+  owner             Member       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  // Operations
+  operationalLga    String       // Required
+  operationalState  String?
+  vehicleStatus     String       @default("Active") // Active, Maintenance, Retired - Required
+  
+  // Documents
+  photoUrl          String?
+  documentUrls      String[]     @default([])
+  
+  // Meta
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  createdBy         String?
+  
+  @@index([organizationId])
+  @@index([ownerId])
+  @@index([karotaNumber])
+}
+
+model AuditLog {
+  id             String       @id @default(uuid())
+  action         String       // CREATE, UPDATE, DELETE, LOGIN, LOGOUT
+  entityType     String       // Member, Asset, User, Organization
+  entityId       String?
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  details        String?      // JSON string of changes
+  ipAddress      String?
+  timestamp      DateTime     @default(now())
+  
+  @@index([organizationId])
+  @@index([userId])
+  @@index([entityType])
+  @@index([timestamp])
+}
